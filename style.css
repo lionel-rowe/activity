@@ -1,0 +1,87 @@
+:root {
+	--dark-hsl: 200, 11%, 5%;
+	--light-hsl: 0, 0%, 92%;
+	--link-hsl: 228, 100%, 50%;
+
+	--bg-hsl: var(--light-hsl);
+	--fg-hsl: var(--dark-hsl);
+
+	--bg: hsl(var(--bg-hsl));
+	--fg: hsl(var(--fg-hsl));
+	--link: hsl(var(--link-hsl));
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		color-scheme: dark;
+
+		--bg-hsl: var(--dark-hsl);
+		--fg-hsl: var(--light-hsl);
+		--link-hsl: 186.79, 100%, 42%;
+	}
+}
+
+body {
+	/* https://css-tricks.com/snippets/css/system-font-stack/ */
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+		Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+		'Segoe UI Symbol';
+	background: var(--bg);
+	color: var(--fg);
+}
+
+a {
+	--color-hsl: var(--link-hsl);
+
+	color: hsl(var(--color-hsl));
+	text-decoration-color: hsl(var(--color-hsl), 0.3);
+}
+
+a.deemphasized {
+	--color-hsl: var(--fg-hsl);
+}
+
+a:hover {
+	text-decoration-color: currentColor;
+}
+
+.activities summary:hover:not(:has(a:hover)) {
+	background: hsl(var(--fg-hsl), 0.1);
+}
+
+.ts {
+	font-size: 0.8em;
+	opacity: 0.3;
+	padding-left: 0.5em;
+	display: inline-block;
+}
+
+.activities {
+	max-width: 800px;
+	margin: 80px auto;
+}
+
+.activities h1 {
+	margin-block-end: 40px;
+}
+
+.activities ul {
+	padding-inline: 0;
+}
+
+li.activity {
+	list-style: none;
+	padding-block-end: 1rem;
+}
+
+li.activity summary {
+	display: list-item;
+	cursor: pointer;
+	margin: -0.5em;
+	padding: 0.5em;
+}
+
+li.activity pre {
+	white-space: pre-wrap;
+	font-size: 0.8em;
+}
