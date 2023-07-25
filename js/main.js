@@ -1,8 +1,18 @@
+import { h } from './html.js'
+
+/** @param {string} ts */
+let dateFormats = (ts) => {
+	const d = new Date(ts)
+
+	return {
+		full: d.toISOString(),
+		pretty: d.toLocaleString(),
+	}
+}
+
 async function initDateFormats() {
 	try {
-		const { default: dayjs } = await import(
-			'https://cdn.jsdelivr.net/npm/dayjs@1.11.9/+esm'
-		)
+		const { default: dayjs } = await import('https://cdn.jsdelivr.net/npm/dayjs@1.11.9/+esm')
 		const { default: relativeTime } = await import(
 			'https://cdn.jsdelivr.net/npm/dayjs@1.11.9/plugin/relativeTime/+esm'
 		)
@@ -11,112 +21,132 @@ async function initDateFormats() {
 
 		globalThis.dayjs = dayjs
 
-		return (ts) => {
+		/** @param {string} ts */
+		dateFormats = (ts) => {
 			const d = dayjs(ts)
 
 			const diff = Math.abs(d.diff(dayjs(), 'days'))
 			const rel = d.fromNow()
 
+			/** @type {string} */
 			const full = d.format('YYYY-MM-DD [at] hh:mm:ss (Z)')
-
+			/** @type {string} */
 			const pretty = diff < 25 ? rel : d.format('MMM DD, YYYY')
 
 			return { full, pretty }
 		}
 	} catch {
-		return (ts) => {
-			const d = new Date(ts)
-
-			return {
-				full: d.toISOString(),
-				pretty: d.toLocaleString(),
-			}
-		}
+		// fall back to naive version
 	}
 }
 
 const url = new URL(location.href)
 const qps = url.searchParams
 
-const username = qps.has('user')
-	? qps.get('user')
-	: new URL(location.href).hostname.split('.')[0]
+const username = qps.get('user') ?? (url.hostname.endsWith('.github.io') ? url.hostname.split('.')[0] : null)
 
-const [dateFormats, activities] = await Promise.all([
-	initDateFormats(),
-	(
-		await fetch(
-			`https://api.github.com/users/${encodeURIComponent(
-				username,
-			)}/events?per_page=100`,
-		)
-	).json(),
-])
+/**
+ * @typedef {(
+ * 	| 'IssuesEvent'
+ * 	| 'WatchEvent'
+ * 	| 'PullRequestEvent'
+ * 	| 'IssueCommentEvent'
+ * 	| 'PushEvent'
+ * 	| 'CreateEvent'
+ * 	| 'repository'
+ * 	| 'ForkEvent'
+ * 	| 'DeleteEvent'
+ * 	| 'PullRequestReviewCommentEvent'
+ * 	| 'PullRequestReviewEvent'
+ * 	| 'ReleaseEvent'
+ * )} ActivityType
+ */
 
-class Html {
-	constructor(input, { trusted } = { trusted: false }) {
-		if (input instanceof this.constructor) {
-			return input
-		}
+/**
+ * @typedef {{
+ * 	type: ActivityType
+ *  payload: unknown
+ *  repo: { url: string, name: string }
+ * }} Activity
+ */
 
-		const str = String(input)
-		const escaped = trusted
-			? str
-			: str.replaceAll(/[&<>"']/g, (x) => `&#${x.codePointAt(0)};`)
+/**
+ * @param {string | null} username
+ * @param {string | number | null} page
+ */
+async function getActivityInfo(username, page) {
+	if (!username) return null
 
-		this.html = escaped
+	page ??= 1
+
+	const res = await fetch(
+		`https://api.github.com/users/${encodeURIComponent(username)}/events?per_page=50&page=${page}`,
+	)
+
+	/** @type {Activity[]} */
+	const activities = await res.json()
+
+	const link = res.headers.get('Link')
+
+	/** @type {Partial<Record<'first' | 'prev' | 'next' | 'last', number>>} */
+	const _pages = Object.fromEntries(
+		[...link.matchAll(/<(?<href>[^>]+)>[^,]*\brel=["']?(?<rel>\w+)[^,]*/g)].map(({ groups: { href, rel } }) => [
+			rel,
+			Number(new URL(href).searchParams.get('page')),
+		]),
+	)
+
+	const pages = {
+		..._pages,
+		current: Number(page),
 	}
 
-	toString() {
-		return this.html
-	}
+	return { username, activities, pages }
 }
 
-function escapeHtml(input) {
-	return Array.isArray(input)
-		? new Html(input.map(escapeHtml).join(''), { trusted: true })
-		: new Html(input)
-}
-
-function h({ raw }, ...args) {
-	return new Html(String.raw({ raw }, ...args.map(escapeHtml)), {
-		trusted: true,
-	})
-}
-
+/** @param {string} str */
 function capitalize(str) {
 	return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase()
 }
 
+/** @param {string} str */
 function sentenceCase(str) {
 	return capitalize(str.replaceAll(/(?<=\p{Ll})(?=\p{Lu})/gu, ' '))
 }
 
+/**
+ * @param {{
+ * 	url: string
+ * 	text: string
+ * 	class?: string
+ * }}
+ */
 function link({ url, text, class: className }) {
-	return h`<a href="${url}"${
-		className ? h`class="${className}"` : ''
-	}>${text}</a>`
+	return h`<a href="${url}"${className ? h`class="${className}"` : ''}>${text}</a>`
 }
 
+/**
+ * @param {Activity} x
+ * @param {{ mainLink?: boolean }}
+ */
 function repoLink(x, { mainLink } = {}) {
 	if (!x.repo) return 'unknown repo'
 
 	return link({
-		url: x.repo.url.replace(
-			'https://api.github.com/repos/',
-			'https://github.com/',
-		),
+		url: x.repo.url.replace('https://api.github.com/repos/', 'https://github.com/'),
 		text: x.repo.name,
 		class: mainLink ? '' : 'deemphasized',
 	})
 }
 
+/** @param {Activity} x */
 function ts(x) {
 	const { full, pretty } = dateFormats(x.created_at)
 
 	return h`<span title="${full}" class="ts">${pretty}</span>`
 }
 
+/** @param {Activity} x */
 function getLiHeading(x) {
 	switch (x.type) {
 		case 'IssuesEvent': {
@@ -269,8 +299,39 @@ function getLiHeading(x) {
 	}
 }
 
-function render({ username, activities }) {
-	const html = h`<div class="activities">
+/** @param {number} page */
+function pageHref(page) {
+	const url = new URL(location.href)
+	url.searchParams.set('page', String(page))
+
+	return url.href
+}
+
+/**
+ * @param {number | undefined} page
+ * @param {string} text
+ */
+function pageLink(page, text) {
+	return page
+		? h`<a href="${pageHref(page)}" class="blip" title="Page ${page}">${text}</a>`
+		: h`<span class="blip">${text}</span>`
+}
+
+/** @typedef {Exclude<Awaited<ReturnType<typeof getActivityInfo>>, null>} ActivityInfo */
+
+/** @param {ActivityInfo} */
+function renderActivities({ username, activities, pages }) {
+	const pagination = h`<div class="pagination">
+		${[
+			pageLink(pages.first, '«'),
+			pageLink(pages.prev, '‹'),
+			h`<span>Page ${pages.current} of ${pages.last ?? pages.current}</span>`,
+			pageLink(pages.next, '›'),
+			pageLink(pages.last, '»'),
+		].filter(Boolean)}
+	</div>`
+
+	return h`<div class="activities">
 		<h1>${username}’s GitHub Activity Log</h1>
 		<ul>
 		${activities.map((x) => {
@@ -292,9 +353,40 @@ function render({ username, activities }) {
 				</li>`
 		})}
 		</ul>
+		${pagination}
 	</div>`
-
-	return html
 }
 
-document.querySelector('#target').innerHTML = render({ username, activities })
+function renderForm() {
+	return h`<h1>No user selected</h1>
+
+	<form class="form" method="get">
+		<div>
+			<label>
+				<div>
+					Show activities for user
+				</div>
+				<div>
+					<input name="user" placeholder="GitHub username">
+				</div>
+			</label>
+		</div>
+
+		<div>
+			<button type="submit">Go</button>
+		</div>
+	</form>`
+}
+
+async function load() {
+	document.querySelector('#target').innerHTML = h`Loading...`
+
+	const [_, activityInfo] = await Promise.all([
+		initDateFormats(),
+		getActivityInfo(username, url.searchParams.get('page')),
+	])
+
+	document.querySelector('#target').innerHTML = activityInfo?.username ? renderActivities(activityInfo) : renderForm()
+}
+
+await load()

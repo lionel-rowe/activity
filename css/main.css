@@ -1,0 +1,122 @@
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+:root {
+	--dark-hsl: 200, 11%, 5%;
+	--light-hsl: 0, 0%, 98%;
+	--link-hsl: 228, 100%, 50%;
+
+	--bg-hsl: var(--light-hsl);
+	--fg-hsl: var(--dark-hsl);
+
+	--bg: hsl(var(--bg-hsl));
+	--fg: hsl(var(--fg-hsl));
+	--link: hsl(var(--link-hsl));
+
+	--lowlight-opacity: 0.5;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		color-scheme: dark;
+
+		--bg-hsl: var(--dark-hsl);
+		--fg-hsl: var(--light-hsl);
+		--link-hsl: 186.79, 100%, 42%;
+	}
+}
+
+body {
+	/* https://css-tricks.com/snippets/css/system-font-stack/ */
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
+		'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+	background: var(--bg);
+	color: var(--fg);
+}
+
+a[href] {
+	--color-hsl: var(--link-hsl);
+
+	color: hsl(var(--color-hsl));
+	text-decoration-color: hsl(var(--color-hsl), 0.3);
+}
+
+a[href].deemphasized {
+	--color-hsl: var(--fg-hsl);
+}
+
+a[href]:hover {
+	text-decoration-color: currentColor;
+}
+
+.activities summary:hover:not(:has(a:hover)) {
+	background: hsl(var(--fg-hsl), 0.1);
+}
+
+.ts {
+	font-size: 0.8rem;
+	opacity: var(--lowlight-opacity);
+	padding-left: 0.5rem;
+	display: inline-block;
+}
+
+.main {
+	max-width: 50rem;
+	margin: 5rem auto;
+	padding-inline: 1rem;
+}
+
+.activities h1 {
+	margin-block-end: 3rem;
+}
+
+.activities ul {
+	padding-inline: 0;
+}
+
+li.activity {
+	list-style: none;
+	--gap: 1rem;
+	padding-block-end: var(--gap);
+}
+
+li.activity summary {
+	display: list-item;
+	cursor: pointer;
+
+	--hitbox: calc(var(--gap) / 2);
+	margin: calc(0px - var(--hitbox));
+	padding: var(--hitbox);
+}
+
+li.activity pre {
+	white-space: pre-wrap;
+	font-size: 0.8rem;
+}
+
+.form {
+	display: flex;
+	gap: 1.5rem;
+	flex-direction: column;
+}
+
+.pagination {
+	display: flex;
+	--gap: 0.8rem;
+	gap: var(--gap);
+	align-items: baseline;
+}
+
+.pagination .blip {
+	--hitbox: calc(var(--gap) / 2);
+	font-size: 1.3rem;
+	margin-inline: calc(0px - var(--hitbox));
+	padding-inline: var(--hitbox);
+}
+
+.pagination .blip:not(a[href]) {
+	opacity: var(--lowlight-opacity);
+}
