@@ -20,6 +20,13 @@ class Html {
 	toString() {
 		return this.#html
 	}
+
+	toElements() {
+		const span = document.createElement('span')
+		span.innerHTML = this.#html
+
+		return [...span.childNodes]
+	}
 }
 
 /**

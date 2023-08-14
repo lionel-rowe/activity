@@ -71,12 +71,10 @@ const username = qps.get('user') ?? (url.hostname.endsWith('.github.io') ? url.h
  */
 
 /**
- * @param {string | null} username
+ * @param {string} username
  * @param {string | number | null} page
  */
 async function getActivityInfo(username, page) {
-	if (!username) return null
-
 	page ??= 1
 
 	const res = await fetch(
@@ -331,8 +329,8 @@ function renderActivities({ username, activities, pages }) {
 		].filter(Boolean)}
 	</div>`
 
-	return h`<div class="activities">
-		<h1>${username}’s GitHub Activity Log</h1>
+	return h`<section class="section">
+		${pagination}
 		<ul>
 		${activities.map((x) => {
 			let liHeading
@@ -354,7 +352,7 @@ function renderActivities({ username, activities, pages }) {
 		})}
 		</ul>
 		${pagination}
-	</div>`
+	</section>`
 }
 
 function renderForm() {
@@ -379,14 +377,25 @@ function renderForm() {
 }
 
 async function load() {
-	document.querySelector('#target').innerHTML = h`Loading...`
+	const target = document.querySelector('#target')
 
-	const [_, activityInfo] = await Promise.all([
-		initDateFormats(),
-		getActivityInfo(username, url.searchParams.get('page')),
-	])
+	if (username) {
+		const userUrl = new URL(username, 'https://github.com').href
 
-	document.querySelector('#target').innerHTML = activityInfo?.username ? renderActivities(activityInfo) : renderForm()
+		target.innerHTML = h`<div class="activities">
+			<h1>${link({ url: userUrl, text: username })}’s GitHub Activity Log</h1>
+			<div class="loading-indicator">Loading...</div>
+		</div>`
+
+		const [_, activityInfo] = await Promise.all([
+			initDateFormats(),
+			getActivityInfo(username, url.searchParams.get('page')),
+		])
+
+		target.querySelector('.loading-indicator').replaceWith(...renderActivities(activityInfo).toElements())
+	} else {
+		target.innerHTML = renderForm()
+	}
 }
 
 await load()

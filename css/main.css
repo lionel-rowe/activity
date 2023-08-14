@@ -69,18 +69,26 @@ a[href]:hover {
 	padding-inline: 1rem;
 }
 
+.section {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
 .activities h1 {
 	margin-block-end: 3rem;
 }
 
 .activities ul {
 	padding-inline: 0;
+	--gap: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap);
 }
 
 li.activity {
 	list-style: none;
-	--gap: 1rem;
-	padding-block-end: var(--gap);
 }
 
 li.activity summary {
@@ -94,6 +102,7 @@ li.activity summary {
 
 li.activity pre {
 	white-space: pre-wrap;
+	tab-size: 4;
 	font-size: 0.8rem;
 }
 
