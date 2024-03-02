@@ -120,7 +120,9 @@ function sentenceCase(str) {
  * }}
  */
 function link({ url, text, class: className }) {
-	return h`<a href="${url}"${className ? h`class="${className}"` : ''}>${text}</a>`
+	return h`<a href="${url.replace('https://api.github.com/repos/', 'https://github.com/')}"${
+		className ? h`class="${className}"` : ''
+	}>${text}</a>`
 }
 
 /**
@@ -131,7 +133,7 @@ function repoLink(x, { mainLink } = {}) {
 	if (!x.repo) return 'unknown repo'
 
 	return link({
-		url: x.repo.url.replace('https://api.github.com/repos/', 'https://github.com/'),
+		url: x.repo.url,
 		text: x.repo.name,
 		class: mainLink ? '' : 'deemphasized',
 	})
