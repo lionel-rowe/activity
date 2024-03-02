@@ -1,4 +1,4 @@
-class Html {
+export class Html {
 	/** @type {string} */
 	#html
 
@@ -33,7 +33,7 @@ class Html {
  * @param {unknown} input
  * @returns {Html}
  */
-function escapeHtml(input) {
+export function escapeHtml(input) {
 	return Array.isArray(input) ? new Html(input.map(escapeHtml).join(''), { trusted: true }) : new Html(input)
 }
 

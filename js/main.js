@@ -1,4 +1,4 @@
-import { h } from './html.js'
+import { Html, escapeHtml, h } from './html.js'
 
 /** @param {string} ts */
 let dateFormats = (ts) => {
@@ -185,21 +185,32 @@ function getLiHeading(x) {
 			return h`
 				💬
 				${capitalize(x.payload.action)}
-				an
+				an issue comment in
 				${link({
 					url: x.payload.comment.html_url,
-					text: 'issue comment',
+					text: x.payload.issue.title,
 				})}
 				on
 				${repoLink(x)}
 			`
 		}
 		case 'PushEvent': {
+			const { commits } = x.payload
+			const placeholder = '\0'
+			const list = new Html(
+				h`${new Intl.ListFormat('en-US').format(
+					[placeholder, commits.length > 1 && `${commits.length - 1} other commits`].filter(Boolean),
+				)}`
+					.toString()
+					.replace(placeholder, link({ url: commits[0].url, text: commits[0].message.split('\n')[0] })),
+				{ trusted: true },
+			)
+
 			return h`
 				➡️
-				Pushed commits
+				Pushed ${list}
 				to
-				${repoLink(x, { mainLink: true })}
+				${repoLink(x)}
 			`
 		}
 		case 'CreateEvent': {
@@ -249,10 +260,10 @@ function getLiHeading(x) {
 			return h`
 				💬
 				${capitalize(x.payload.action)}
-				a
+				a pull request review comment in
 				${link({
 					url: x.payload.comment.html_url,
-					text: 'pull request review comment',
+					text: x.payload.pull_request.title,
 				})}
 				on
 				${repoLink(x)}
@@ -262,10 +273,10 @@ function getLiHeading(x) {
 			return h`
 				💬
 				${capitalize(x.payload.action)}
-				a
+				a pull request review in
 				${link({
 					url: x.payload.review.html_url,
-					text: 'pull request review',
+					text: x.payload.pull_request.title,
 				})}
 				on
 				${repoLink(x)}
