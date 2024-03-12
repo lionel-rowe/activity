@@ -1,4 +1,4 @@
-import { Html, escapeHtml, h } from './html.js'
+import { Html, h } from './html.js'
 
 /** @param {string} ts */
 let dateFormats = (ts) => {
@@ -77,14 +77,30 @@ const username = qps.get('user') ?? (url.hostname.endsWith('.github.io') ? url.h
 async function getActivityInfo(username, page) {
 	page ??= 1
 
-	const res = await fetch(
-		`https://api.github.com/users/${encodeURIComponent(username)}/events?per_page=50&page=${page}`,
-	)
+	const url = new URL(`users/${encodeURIComponent(username)}/events`, 'https://api.github.com/')
+	url.searchParams.set('per_page', '50')
+	url.searchParams.set('page', String(page))
+
+	const res = await fetch(url)
+
+	if (!res.ok) {
+		/** @type {{ message: string }} */
+		let err
+		if (res.headers.get('content-type')?.split(';')[0].trim() === 'application/json') {
+			const e = await res.json()
+			if (typeof e.message === 'string') err = e
+			else err = { message: 'An unknown error occurred' }
+		} else {
+			err = { message: await res.text() }
+		}
+
+		return /** @type {const} */ ({ kind: 'error', ...err })
+	}
 
 	/** @type {Activity[]} */
 	const activities = await res.json()
 
-	const link = res.headers.get('Link')
+	const link = res.headers.get('Link') ?? ''
 
 	/** @type {Partial<Record<'first' | 'prev' | 'next' | 'last', number>>} */
 	const _pages = Object.fromEntries(
@@ -99,7 +115,7 @@ async function getActivityInfo(username, page) {
 		current: Number(page),
 	}
 
-	return { username, activities, pages }
+	return /** @type {const} */ ({ kind: 'success', username, activities, pages })
 }
 
 /** @param {string} str */
@@ -330,8 +346,13 @@ function pageLink(page, text) {
 
 /** @typedef {Exclude<Awaited<ReturnType<typeof getActivityInfo>>, null>} ActivityInfo */
 
-/** @param {ActivityInfo} */
-function renderActivities({ username, activities, pages }) {
+/** @param {ActivityInfo} activityInfo */
+function renderActivities(activityInfo) {
+	if (activityInfo.kind === 'error') {
+		return h`<div class="error">Error: ${activityInfo.message}</div>`
+	}
+
+	const { username, activities, pages } = activityInfo
 	const pagination = h`<div class="pagination">
 		${[
 			pageLink(pages.first, '«'),
