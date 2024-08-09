@@ -213,7 +213,12 @@ function getLiHeading(x) {
 			`
 		}
 		case 'PushEvent': {
-			const { commits } = x.payload
+			const refBranchPrefix = 'refs/heads/'
+			const { ref, commits } = x.payload
+			const branch = ref.startsWith(refBranchPrefix)
+				? h`branch <code>${ref.slice(refBranchPrefix.length)}</code>`
+				: h`<code>${ref}</code>`
+
 			const placeholder = '\0'
 			const list = new Html(
 				h`${new Intl.ListFormat('en-US').format(
@@ -228,6 +233,8 @@ function getLiHeading(x) {
 				➡️
 				Pushed ${list}
 				to
+				${branch}
+				of
 				${repoLink(x)}
 			`
 		}
