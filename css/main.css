@@ -129,3 +129,8 @@ li.activity pre {
 .pagination .blip:not(a[href]) {
 	opacity: var(--lowlight-opacity);
 }
+
+/* hide from Ctrl+F when not open */
+details:not([open]) pre {
+    visibility: hidden;
+}
