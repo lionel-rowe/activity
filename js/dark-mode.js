@@ -19,7 +19,7 @@ function toggleDarkMode(newDark) {
 	document.documentElement.classList.toggle('dark-mode', newDark)
 	document.documentElement.classList.toggle('light-mode', !newDark)
 	document.querySelector('link[rel=icon]').href = `https://github.githubassets.com/favicons/${iconFileName}`
-	document.querySelector('#dark-mode-toggle').innerHTML = newDark ? '🌞' : '🌛'
+	document.querySelector('#dark-mode-toggle').innerHTML = newDark ? '🌛' : '🌞'
 }
 
 toggleDarkMode(dark)
